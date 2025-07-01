@@ -17,7 +17,28 @@ o que no tuvieron ventas en meses anteriores no debe considerarse esta regla ya 
 de referencia
 */
 
-
+--1:
+SELECT
+    empl_apellido,
+    empl_nombre,
+    SUM(i1.item_cantidad) totalUnidadesVendidas,
+    AVG(fact_total) promedioFacturado,
+    SUM(i1.item_cantidad * i1.item_precio) montoTotalVendido
+FROM Empleado e1
+JOIN Factura f1 ON f1.fact_vendedor = e1.empl_codigo
+JOIN Item_Factura i1 ON
+    f1.fact_tipo = i1.item_tipo and f1.fact_sucursal = i1.item_sucursal and f1.fact_numero = i1.item_numero
+WHERE empl_codigo IN (
+    SELECT TOP 5 f2.fact_vendedor
+    FROM Factura f2
+    JOIN Cliente c2 ON c2.clie_codigo = f2.fact_cliente
+    WHERE YEAR(f2.fact_fecha) = (SELECT MAX(YEAR(f3.fact_fecha)) FROM Factura f3)
+    GROUP BY f2.fact_vendedor
+    ORDER BY COUNT(f2.fact_cliente) ASC, SUM(f2.fact_total) DESC
+) AND YEAR(f1.fact_fecha) = (SELECT MAX(YEAR(f4.fact_fecha)) FROM Factura f4)
+GROUP BY e1.empl_codigo, e1.empl_apellido, e1.empl_nombre
+HAVING (COUNT(i1.item_numero)) > 2
+ORDER BY SUM(i1.item_cantidad) DESC, e1.empl_codigo DESC
 
 /* 24/06/2025 TT
 1. Se requiere armar una estadística que retorne para cada año y familia el clientes que menos productos
