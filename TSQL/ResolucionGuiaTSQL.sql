@@ -18,3 +18,44 @@ BEGIN
     RETURN 'OCUPACION DEL DEPOSITO ' + @deposito + '' + RTRIM(STR(ROUND(@cantidadAlmacenada / @maximo * 100, 2), 6, 2)) + '%'
 END
 GO
+
+/*2. Realizar una función que dado un artículo y una fecha, retorne el stock que
+existía a esa fecha
+CREATE OR ALTER FUNCTION stockXFecha(@articulo char(8), @fecha date)
+RETURNS decimal(12,2)
+AS
+BEGIN
+END*/
+
+/*11. Cree el/los objetos de base de datos necesarios para que dado un código de
+empleado se retorne la cantidad de empleados que este tiene a su cargo (directa o
+indirectamente). Solo contar aquellos empleados (directos o indirectos) que
+tengan un código mayor que su jefe directo*/
+CREATE OR ALTER FUNCTION cantidadACargo(@empleado numeric(6,0))
+RETURNS INT
+AS
+BEGIN
+
+DECLARE @cantidadACargo INT, @aCargoDirecto numeric(6,0)
+DECLARE cEmpleadosACargo CURSOR FOR
+    SELECT empl_codigo
+    FROM Empleado
+    WHERE empl_jefe = @empleado AND empl_codigo > @empleado
+
+SELECT @cantidadACargo = COUNT(*)
+FROM Empleado
+WHERE empl_jefe = @empleado AND empl_codigo > @empleado
+
+OPEN cEmpleadosACargo
+FETCH NEXT FROM cEmpleadosACargo into @aCargoDirecto
+    WHILE @@FETCH_STATUS = 0
+        BEGIN
+            SET @cantidadACargo = @cantidadACargo + dbo.cantidadACargo(@aCargoDirecto)
+            FETCH NEXT FROM cEmpleadosACargo into @aCargoDirecto
+        END
+CLOSE cEmpleadosACargo
+DEALLOCATE cEmpleadosACargo
+
+RETURN @cantidadACargo
+
+END
